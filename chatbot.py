@@ -2,39 +2,24 @@ import argparse
 import os
 import json
 import openai
+import curses
+import time
 
-def parse_command_line():
-    parser = argparse.ArgumentParser(description="A simple chatBot using Openai gpt-3.5-turdo model")
-    parser.add_argument('-r', '--role', 
-                        type=str, default="0", 
-                        help='Choose the bot\'s role (0 by default stands for original role). Check all roles in the file \"role_play_data.json\"')
-    parser.add_argument('-m', '--memorable', 
-                        action='store_true', 
-                        help='The chatBot can remember previous dialogues.')
-    parser.add_argument('-t', '--temperature', 
-                        type=float, default=1, 
-                        help='Sampling temperature to use (between 0 and 2). Higher values make the output more random, while lower values make it more focused.')
-    parser.add_argument('-p', '--presence_penalty', 
-                        type=float, default=0, 
-                        help='Number between -2.0 and 2.0. Positive values penalize new tokens based on whether they appear in the text so far, increasing the model\'s likelihood to talk about new topics.')
-    parser.add_argument('-f', '--frequency_penalty', 
-                        type=float, default=0, 
-                        help='Number between -2.0 and 2.0. Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model\'s likelihood to repeat the same line verbatim.')
-    parser.add_argument('request',
-                        type=str, nargs='*',
-                        help='Input your request directly in the command line and the program will exit after respond to the request')
-    return parser.parse_args()
+from chatlog import ChatLog
+from chatUI import ChatUI
 
-def print_chatbot_config(role_info, args):
-    print( "   ChatBot 1.1")
-    print(f" - role: {role_info['name']}")
-    print(f" - memorable: {args.memorable}")
-    print(f" - temperature: {args.temperature}")
-    print(f" - presence_penalty: {args.presence_penalty}")
-    print(f" - frequency_penalty: {args.frequency_penalty}")
+CONFIG_FILE = "config.json"
+ROLEPLAY_DIR = "roleplay/"
+
+def print_config(config):
+    print(f"- Role: {config['role']}")
+    print(f"- Memorable: {config['memorable']}")
+    print(f"- Temperature: {config['temperature']}")
+    print(f"- Presence Penalty: {config['presence_penalty']}")
+    print(f"- Frequency Penalty: {config['frequency_penalty']}")
     print()
-
-def get_user_message():
+    
+def ask_user_message():
     prompt = ''
     while not prompt or prompt.isspace():
         prompt = input('@User> ')
@@ -45,68 +30,127 @@ def get_user_message():
             if line == ']':
                 break
             prompt += '\n' + line
-    return {'role': 'user', 'content': prompt.strip('\n')}
+    return prompt.strip('/n')
 
-def get_role_info(args):
-    with open('role_play_data.json', 'r', encoding='utf-8') as f:
-        role_play_data = json.load(f)["roles"]
-    role_index = 0
-    if args.role.isdigit():
-        role_index = int(args.role)
-        if role_index >= len(role_play_data):
-            role_index = 0
-    else:
-        for i in range(len(role_play_data)):
-            if role_play_data[i]["name"] == args.role:
-                role_index = i
-                break
-    return role_play_data[role_index]
+def run_normal(stdscr, config):
 
-def get_initial_messages(role_info):
-    return [{'role': 'system', 'content': role_info["content"]}]
+    chatlog = ChatLog(config)
+    
+    ui = ChatUI(stdscr)
 
-def get_bot_message(messages, args):
-    completion = openai.ChatCompletion.create(
-        model = "gpt-3.5-turbo", 
-        messages = messages, 
-        temperature = args.temperature, 
-        presence_penalty = args.presence_penalty, frequency_penalty = args.frequency_penalty)
-    bot_message = completion["choices"][0]["message"] # tokens_usage = completion["usage"]["total_tokens"]
-    return bot_message
+    while True:
+        prompt = ui.ask_user_input()
+        chatlog.set_prompt(prompt)
+        chat = chatlog.get_chat()
+        ui.show(chat)
+        chatlog.create_response()
+        chat = chatlog.get_chat()
+        ui.show(chat)
 
-def run_chatbot(args):
-    role_info = get_role_info(args)
-    if not args.request:
-        print_chatbot_config(role_info, args)
-        messages = get_initial_messages(role_info)
-        while True:
-            user_message = get_user_message()
-            messages.append(user_message)
-            print(f'@{role_info["name"]}> ...', end='', flush=True)
-            bot_message = get_bot_message(messages, args)
-            response = bot_message["content"].strip('\n')
-            print(f'\b\b\b{response}\n')
-            if args.memorable:
-                messages.append(bot_message)
-            else:
-                messages = get_initial_messages(role_info)
-    else:
-        messages = get_initial_messages(role_info)
-        messages.append({'role': 'user', 'content': '\n'.join(args.request).strip('\n')})
-        bot_message = get_bot_message(messages, args)
-        response = bot_message["content"].strip('\n')
-        print(response)
+def run_infile(self, infile):
+    f = open(infile)
+    line = f.readline();
+    while line:
+        for r in range(0,1):
+            self.set_initial_chat()
+            self.set_user_message(line)
+            response = self.set_bot_message()
+            print(response)
+            time.sleep(0.5)
+        print()
+        line = f.readline()
+    f.close()
+
+def run_single(self, request):
+    self.set_initial_chat()
+    self.set_user_message(request)
+    response = self.set_bot_message()
+    print(response)
+
+def init_config():
+    oldConfig = {}
+    if os.path.exists(CONFIG_FILE):
+        oldConfig = load_config()
+    
+    def config_key(key, prompt, defaultValBackUp):
+        defaultVal = oldConfig.get(key)
+        if defaultVal is None:
+            defaultVal = defaultValBackUp
+        res = input(f"{prompt}(Default: {defaultVal}): ").strip()
+        if not res:
+            res = str(defaultVal)
+        return res
+    
+    print("Configuring...")
+    newConfig = {}
+
+    newConfig["roleDir"] = config_key("roleDir", "Roleplay Content Directory", ROLEPLAY_DIR)
+
+    roleFileList = os.listdir(ROLEPLAY_DIR)
+    if roleFileList is None:
+        roleFileList[0] = None
+    roleListStr = " ".join(roleFile[:-4] for roleFile in roleFileList)
+    newConfig["role"] = config_key("role", f"Role ({roleListStr})", roleFileList[0][:-4])
+
+    newConfig["memorable"] = config_key("memorable", "Memorable (y/n)", "n")
+    newConfig["temperature"] = float(config_key("temperature", "Temperature", 1))
+    newConfig["presence_penalty"] = float(config_key("presence_penalty", "Presence Penalty", 0))
+    newConfig["frequency_penalty"] = float(config_key("frequency_penalty", "Frequency Penalty", 0))
+
+    return newConfig
+
+def load_config():
+    return json.load(open(CONFIG_FILE))
+
+def parse_command_line():
+    parser = argparse.ArgumentParser(description="A simple chatBot using Openai gpt-3.5-turdo model")
+    parser.add_argument('-i', '--infile', 
+                        type=str, default='', 
+                        help='Specify a file as a prompt collections.')
+    parser.add_argument('-c', '--config',
+                        action="store_true",
+                        help='Configuring the config file.')
+    parser.add_argument('-t', '--temp',
+                        action="store_true",
+                        help='Start a new chat with temparary specified configuration. ')
+    parser.add_argument('request',
+                        type=str, nargs='*',
+                        help='Input your request directly in the command line and the program will exit after respond to the request')
+    return parser.parse_args()
+
+def save_config(config):
+    try:
+        json.dump(
+            config,
+            open(CONFIG_FILE, mode="w", encoding="utf-8"),
+            indent=4
+        )
+    except Exception as e:
+        print(f"\nError: {e.__class__.__name__}. Failed to create config file.")
+        exit(1)
 
 def main():
     args = parse_command_line()
     openai.api_key = os.getenv("OPENAI_API_KEY")
-    run_chatbot(args)
+    if args.config or not os.path.exists(CONFIG_FILE):
+        save_config(init_config())
+    elif args.infile:
+        chatbot = ChatBot(load_config())
+        chatbot.print_config()
+        chatbot.run_infile(args.infile)
+    elif args.request:
+        chatbot = ChatBot(load_config())
+        chatbot.run_single(args.request)
+    elif args.temp:
+        chatbot = ChatBot(init_config())
+        chatbot.run_normal()
+    else:
+        config = load_config()
+        print_config(config)
+        curses.wrapper(
+        run_normal, config
+        )
 
 if __name__ == '__main__':
-    try:
-        main()
-    except Exception as e:
-        print(e.args)
-    finally:
-        os.system('pause')
+    main()
 

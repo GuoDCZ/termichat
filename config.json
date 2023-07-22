@@ -1,0 +1,8 @@
+{
+    "roleDir": "roleplay/",
+    "role": "Neko",
+    "memorable": "n",
+    "temperature": 1.0,
+    "presence_penalty": 0.0,
+    "frequency_penalty": 0.0
+}
