@@ -3,122 +3,96 @@ import os
 
 class ChatLog:
     def __init__(self, config):
-        self.role = config['role']
-        self.memorable = config['memorable']
-        self.temperature = config['temperature']
-        self.presence_penalty = config['presence_penalty']
-        self.frequency_penalty = config['frequency_penalty']
-        roleInfoFilePath = os.path.join(config['roleDir'], config['role'] + '.txt')
-        self.sys_msg = open(roleInfoFilePath, 'r', encoding='utf-8').read()
-        self.first: Message = None
-        self.curr: Message = None
-        pass
-
-    def incre_curr(self):
-        if self.curr.get_next() is None:
-            return False
-        self.curr = self.curr.get_next()
-        return True
-
-    def load_chat(self, chat):
-        assert chat[0]['role'] == 'system'
-        self.sys_msg = chat[0]['content']
-        self.curr = self.first = Message()
-        for i in range(len(chat)//2):
-            self.curr.load_chat(chat[i*2+1:i*2+2])
-            self.curr.add_next(Message(self.curr))
-            self.curr = self.curr.get_next()
-
+        self.config = config
+        fp = os.path.join(config['roleDir'], config['role'] + '.txt')
+        system_content = open(fp, 'r', encoding='utf-8').read()
+        self.curr = self.first = Message(None)
+        self.first.chat = {
+            'role': 'system',
+            'content': system_content
+        }
+        
     def get_chat(self):
-        curr_backup = self.curr
-        self.curr = self.first
-        chat = [
-            {
-                'role': 'system',
-                'content': self.sys_msg
-            }
-        ]
-        while True:
-            chat += self.curr.get_chat()
-            if self.incre_curr() is False:
-                break
-        self.curr = curr_backup
-        return chat
+        return self.first.get_chat()
 
-    def set_prompt(self, prompt):
+    def move_left(self):
+        assert self.curr.left
+        self.curr = self.curr.left
+
+    def move_right(self):
+        assert self.curr.right
+        self.curr = self.curr.right
+
+    def move_prev(self):
+        assert self.curr.prev
+        self.curr = self.curr.prev
+
+    def move_next(self):
+        assert self.curr.next
+        self.curr = self.curr.next
+
+    def make_next(self):
+        assert self.curr.chat
+        assert self.curr.next is None
         msg = Message(self.curr)
-        msg.prompt = prompt
-        if self.curr is None:
-            self.first = msg
-        else:
-            self.curr.add_next(msg)
-        self.curr = msg
+        self.curr.next = msg
+        self.move_next()
 
-    def switch_branch(self, n):
-        self.curr = self.curr.last
-        self.curr.n = n
-        self.curr = self.curr.get_next()
+    def make_right(self):
+        assert self.curr.chat
+        msg = Message(self.curr.prev)
+        msg.left = self.curr
+        msg.right = self.curr.right
+        if self.curr.right:
+            self.curr.right.left = msg
+        self.curr.right = msg
+        self.curr.prev.next = msg
+        self.move_right()
+
+    def make(self):
+        
+        
+
+    def add_prompt(self, prompt):
+        self.incre_curr()
+        self.curr.chat = {
+            'role': 'user',
+            'content': prompt
+        }
 
     def create_response(self):
-        completion = openai.ChatCompletion.create (
+        cmpl = openai.ChatCompletion.create (
             model = "gpt-3.5-turbo", 
             messages = self.get_chat(), 
-            temperature = self.temperature,
-            presence_penalty = self.presence_penalty, 
-            frequency_penalty = self.frequency_penalty
+            temperature = self.config['temperature'],
+            presence_penalty = self.config['presence_penalty'], 
+            frequency_penalty = self.config['frequency_penalty']
         )
-        response = completion["choices"][0]["message"]['content']
-        self.curr.set_response(response)
-        return response
+        prev_tokens = self.curr.prev.get_tokens_bottom_up()
+        self.curr.tokens = cmpl['usage']['prompt_tokens'] - prev_tokens
+        self.incre_curr()
+        self.curr.chat = cmpl["choices"][0]["message"]
+        self.curr.tokens = cmpl['usage']['completion_tokens']
 
 class Message:
-    def __init__(self, last = None):
-        self.prompt = None
-        self.response = None
-        self.n = None
-        self.last = last
-        self.nexts = []
+    def __init__(self, last):
+        self.chat: dict = None
+        self.tokens: int = None
+        self.prev: Message = last
+        self.next: Message = None
+        self.left: Message = None
+        self.right: Message = None
 
-    def load_chat(self, chat):
-        assert chat[0]['role'] == 'user'
-        self.prompt = chat[0]['content']
-        assert chat[1]['role'] == 'assistant'
-        self.response = chat[1]['content']
-
-    def add_next(self, next):
-        self.nexts.append(next)
-        self.set_next(len(self.nexts)-1)
-
-    def set_next(self, n):
-        assert n < len(self.nexts) and n >= 0
-        self.n = n
-
-    def get_next(self):
-        if self.n is None:
-            return None
-        return self.nexts[self.n]
-
-    def set_prompt(self, prompt):
-        self.prompt = prompt
-
-    def set_response(self, response):
-        self.response = response
+    def get_tokens(self):
+        if self.prev is None:
+            return self.tokens
+        else:
+            return self.tokens + self.prev.get_tokens()
 
     def get_chat(self):
-        chat = []
-        chat.append(
-            {
-                'role': 'user',
-                'content': self.prompt
-            }
-        )
-        if self.response:
-            chat.append(
-                {
-                    'role': 'assistant',
-                    'content': self.response
-                }
-            )
-        return chat
+        if self.get_next() is None:
+            return self.chat
+        else:
+            return self.chat + self.next.get_chat()
 
     

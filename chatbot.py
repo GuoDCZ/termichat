@@ -34,22 +34,25 @@ def ask_user_message():
 
 def run_normal(stdscr, config):
 
-    chatlog = ChatLog(config)
+    chatlog = ChatLog()
+    chatlog.load_config(config)
     
     ui = ChatUI(stdscr)
+    chat = chatlog.get_chat()
+    ui.update_pad(chat)
 
     while True:
         prompt = ui.ask_user_input()
         chatlog.set_prompt(prompt)
         chat = chatlog.get_chat()
-        ui.show(chat)
+        ui.update_pad(chat)
         chatlog.create_response()
         chat = chatlog.get_chat()
-        ui.show(chat)
+        ui.update_pad(chat)
 
 def run_infile(self, infile):
     f = open(infile)
-    line = f.readline();
+    line = f.readline()
     while line:
         for r in range(0,1):
             self.set_initial_chat()
