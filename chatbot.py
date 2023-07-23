@@ -4,6 +4,7 @@ import json
 import openai
 import curses
 import time
+import threading
 
 from chatlog import ChatLog
 from chatUI import ChatUI
@@ -32,23 +33,41 @@ def ask_user_message():
             prompt += '\n' + line
     return prompt.strip('/n')
 
+def refresh_log(ui: ChatUI, event_log_change: threading.Event):
+    while not ui.log.is_end():
+        event_log_change.wait()
+        ui.refresh_log()
+
+def refresh_pad(ui: ChatUI, event_pad_change: threading.Event):
+    while not ui.log.is_end():
+        event_pad_change.wait()
+        ui.refresh_pad()
+
 def run_normal(stdscr, config):
 
-    chatlog = ChatLog()
-    chatlog.load_config(config)
-    
-    ui = ChatUI(stdscr)
-    chat = chatlog.get_chat()
-    ui.update_pad(chat)
+    log = ChatLog(config)
+
+    ui = ChatUI(log, stdscr)
+
+    event_log_change = threading.Event()
+    event_pad_change = threading.Event()
+    t_refresh_log = threading.Thread(
+        target=refresh_log,
+        args=[ui,event_log_change]
+    ).run()
+    t_refresh_pad = threading.Thread(
+        target=refresh_pad,
+        args=[ui,event_pad_change]
+    ).run()
 
     while True:
         prompt = ui.ask_user_input()
-        chatlog.set_prompt(prompt)
-        chat = chatlog.get_chat()
-        ui.update_pad(chat)
-        chatlog.create_response()
-        chat = chatlog.get_chat()
-        ui.update_pad(chat)
+        log.add_prompt(prompt)
+        ui.update_pad()
+        ui.refresh()
+        log.create_response()
+        ui.update_pad()
+        ui.refresh()
 
 def run_infile(self, infile):
     f = open(infile)

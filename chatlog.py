@@ -1,87 +1,79 @@
 import openai
 import os
+import typing
 
 class ChatLog:
     def __init__(self, config):
-        self.config = config
+        self.config: dict = config
         fp = os.path.join(config['roleDir'], config['role'] + '.txt')
         system_content = open(fp, 'r', encoding='utf-8').read()
-        self.curr = self.first = Message(None)
-        self.first.chat = {
-            'role': 'system',
-            'content': system_content
-        }
+        self.first: Message = Message(
+            prev=None,
+            chat={
+                'role': 'system',
+                'content': system_content
+            }
+        )
+        self.curr: Message = self.first
         
     def get_chat(self):
         return self.first.get_chat()
 
-    def move_left(self):
-        assert self.curr.left
-        self.curr = self.curr.left
-
-    def move_right(self):
-        assert self.curr.right
-        self.curr = self.curr.right
-
     def move_prev(self):
-        assert self.curr.prev
-        self.curr = self.curr.prev
+        if self.curr.prev:
+            self.curr = self.curr.prev
 
     def move_next(self):
-        assert self.curr.next
-        self.curr = self.curr.next
-
-    def make_next(self):
-        assert self.curr.chat
-        assert self.curr.next is None
-        msg = Message(self.curr)
-        self.curr.next = msg
-        self.move_next()
-
-    def make_right(self):
-        assert self.curr.chat
-        msg = Message(self.curr.prev)
-        msg.left = self.curr
-        msg.right = self.curr.right
-        if self.curr.right:
-            self.curr.right.left = msg
-        self.curr.right = msg
-        self.curr.prev.next = msg
-        self.move_right()
-
-    def make(self):
-        
-        
+        if self.curr.next:
+            self.curr = self.curr.next
 
     def add_prompt(self, prompt):
-        self.incre_curr()
-        self.curr.chat = {
-            'role': 'user',
-            'content': prompt
-        }
+        self.curr.set_next(
+            Message(
+                prev=self.curr,
+                chat={
+                    'role': 'user',
+                    'content': prompt
+                }
+            )
+        )
+        self.move_next()
 
     def create_response(self):
-        cmpl = openai.ChatCompletion.create (
+        cmpl = openai.ChatCompletion.create(
             model = "gpt-3.5-turbo", 
             messages = self.get_chat(), 
             temperature = self.config['temperature'],
             presence_penalty = self.config['presence_penalty'], 
             frequency_penalty = self.config['frequency_penalty']
         )
-        prev_tokens = self.curr.prev.get_tokens_bottom_up()
+        prev_tokens = self.curr.prev.get_tokens()
         self.curr.tokens = cmpl['usage']['prompt_tokens'] - prev_tokens
-        self.incre_curr()
-        self.curr.chat = cmpl["choices"][0]["message"]
-        self.curr.tokens = cmpl['usage']['completion_tokens']
+        self.curr.set_next(
+            Message(
+                prev=self.curr,
+                chat=cmpl["choices"][0]["message"],
+                tokens=cmpl['usage']['completion_tokens']
+            )
+        )
+        self.move_next()
 
 class Message:
-    def __init__(self, last):
-        self.chat: dict = None
-        self.tokens: int = None
-        self.prev: Message = last
+    def __init__(self, 
+                 chat = None, 
+                 tokens = 0, 
+                 prev = None):
+        self.chat: dict = chat
+        self.tokens: int = tokens
+        self.prev: Message = prev
+        self.nexts: typing.List[Message] = []
         self.next: Message = None
-        self.left: Message = None
-        self.right: Message = None
+
+    def get_chat(self):
+        if self.next is None:
+            return [self.chat]
+        else:
+            return [self.chat] + self.next.get_chat()
 
     def get_tokens(self):
         if self.prev is None:
@@ -89,10 +81,16 @@ class Message:
         else:
             return self.tokens + self.prev.get_tokens()
 
-    def get_chat(self):
-        if self.get_next() is None:
-            return self.chat
-        else:
-            return self.chat + self.next.get_chat()
-
+    def set_next(self, msg):
+        self.nexts.append(msg)
+        self.next = msg
     
+    def move_left(self):
+        index = self.nexts.index(self.next)
+        index = max(0, index-1)
+        self.next = self.nexts[index]
+
+    def move_right(self):
+        index = self.nexts.index(self.next)
+        index = min(len(self.nexts)-1, index-1)
+        self.next = self.nexts[index]
