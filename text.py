@@ -1,16 +1,21 @@
-class Textbox:
+
+class TextBox:
     def __init__(self):
         self.s: str = ''
+        self.i: int = 0
+
+    def clear(self):
+        self.s = ''
         self.i = 0
 
     def is_newline(self, i):
-        return i == -1 or i == len(self.s) or self.s[i] == '\n'
+        return i == self.up_most() - 1 or i == self.down_most() or self.s[i] == '\n'
 
     def left(self, i):
-        return i - 1 if i > 0 else i
+        return i - 1 if i > self.up_most() else i
 
     def right(self, i):
-        return i + 1 if i < len(self.s) else i
+        return i + 1 if i < self.down_most() else i
 
     def left_most(self, i):
         while not self.is_newline(i - 1):
@@ -80,11 +85,11 @@ class Textbox:
     def move_down_most(self):
         self.i = self.down_most()
 
-    def put_key(self, key):
+    def insert(self, key):
         self.s = self.s[:self.i] + chr(key) + self.s[self.i:]
         self.i += 1
 
-    def type(self, key):
+    def put_key(self, key):
         if key == 127: # BACK_SPACE
             self.remove_left()
         elif key == 258: # DOWN
@@ -108,5 +113,5 @@ class Textbox:
         elif key == 383: # SHIFT + DELETE 
             self.remove_line()
         else: # printable (maybe) character
-            self.put_key(key)
-        return True
+            self.insert(key)
+

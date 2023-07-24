@@ -8,6 +8,7 @@ import threading
 
 from chatlog import ChatLog
 from chatUI import ChatUI
+from text import TextBox
 
 CONFIG_FILE = "config.json"
 ROLEPLAY_DIR = "roleplay/"
@@ -20,54 +21,59 @@ def print_config(config):
     print(f"- Frequency Penalty: {config['frequency_penalty']}")
     print()
     
-def ask_user_message():
-    prompt = ''
-    while not prompt or prompt.isspace():
-        prompt = input('@User> ')
-    if prompt == '[':
-        prompt = ''
+class Control:
+    def __init__(self, config):
+        self.log: ChatLog = ChatLog(config)
+        self.tb: TextBox = TextBox()
+
+    def run(self, stdscr: curses.window):
+        self.ui: ChatUI = ChatUI(stdscr, self.log)
+        self.ui.refresh_log()
+        self.ui.refresh_pad()
+        self.alt: bool = False
         while True:
-            line = input()
-            if line == ']':
+            key = stdscr.getch()
+            if key == 526:
+                self.put_key('!')
+            if not self.put_key(key):
                 break
-            prompt += '\n' + line
-    return prompt.strip('/n')
 
-def refresh_log(ui: ChatUI, event_log_change: threading.Event):
-    while not ui.log.is_end():
-        event_log_change.wait()
-        ui.refresh_log()
-
-def refresh_pad(ui: ChatUI, event_pad_change: threading.Event):
-    while not ui.log.is_end():
-        event_pad_change.wait()
-        ui.refresh_pad()
-
-def run_normal(stdscr, config):
-
-    log = ChatLog(config)
-
-    ui = ChatUI(log, stdscr)
-
-    event_log_change = threading.Event()
-    event_pad_change = threading.Event()
-    t_refresh_log = threading.Thread(
-        target=refresh_log,
-        args=[ui,event_log_change]
-    ).run()
-    t_refresh_pad = threading.Thread(
-        target=refresh_pad,
-        args=[ui,event_pad_change]
-    ).run()
-
-    while True:
-        prompt = ui.ask_user_input()
-        log.add_prompt(prompt)
-        ui.update_pad()
-        ui.refresh()
-        log.create_response()
-        ui.update_pad()
-        ui.refresh()
+    def put_key(self, key):
+        if not self.alt and key == 27: # ALT
+            self.alt = True
+        elif self.alt and key == 10: # ALT + ENTER
+            self.log.add_prompt(self.tb.s)
+            self.tb.clear()
+            self.ui.refresh_log()
+            self.ui.refresh_pad()
+            self.log.add_response()
+            self.ui.refresh_log()
+            self.alt = False
+        elif self.alt and key == 27: # doubel ESC
+            return False
+        elif key == 336: # SHIFT + DOWN
+            self.ui.scroll_down()
+        elif key == 337: # SHIFT + UP
+            self.ui.scroll_up()
+        elif key == 393: # SHIFT + LEFT
+            self.ui.page_down()
+        elif key == 402: # SHIFT + RIGHT
+            self.ui.page_up()
+        # elif key == 410: # RESIZE
+        #     curses.update_lines_cols()
+        #     self.pad.resize(1000, curses.COLS)
+        #     self.update_pad()
+        elif key == 546: # CTRL + LEFT
+            self.log.move_prev()
+            self.ui.refresh_log()
+        elif key == 561: # CTRL + RIGHT
+            self.log.move_next()
+            self.ui.refresh_log()
+        else:
+            self.tb.put_key(key)
+            self.ui.refresh_tb(self.tb)
+        self.ui.refresh_pad()
+        return True
 
 def run_infile(self, infile):
     f = open(infile)
@@ -169,9 +175,8 @@ def main():
     else:
         config = load_config()
         print_config(config)
-        curses.wrapper(
-        run_normal, config
-        )
+        ctrl = Control(config)
+        curses.wrapper(ctrl.run)
 
 if __name__ == '__main__':
     main()

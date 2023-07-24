@@ -1,102 +1,92 @@
 import curses
-from text import Textbox
+from text import TextBox
 from chatlog import ChatLog
 
 class ChatUI:
-    def __init__(self, log, stdscr):
+    def __init__(self, stdscr, log):
         self.log: ChatLog = log
         self.stdscr: curses.window = stdscr
         self.pad = curses.newpad(1000, curses.COLS)
         curses.initscr()
         curses.start_color()
-        curses.init_color(101, 0xf3*1000//0x100, 0x94*1000//0x100, 0x25*1000//0x100)
-        curses.init_color(102, 0x2d*1000//0x100, 0xbc*1000//0x100, 0xec*1000//0x100)
-        curses.init_color(103, 300, 300, 300)
-        curses.init_pair(1, 101, 0)
-        curses.init_pair(2, 102, 0)
-        curses.init_pair(3, curses.COLOR_RED, 0)
-        curses.init_pair(4, 101, 103)
-        curses.init_pair(5, 102, 103)
-        curses.init_pair(6, curses.COLOR_RED, 103)
+        curses.init_color(0xf0, 0xf3*1000//0x100, 0x94*1000//0x100, 0x25*1000//0x100)
+        curses.init_pair(0xf0, 0xf0, 0)
+        self.COLOR_USR = curses.color_pair(0xf0)
+        curses.init_color(0xf1, 0x2d*1000//0x100, 0xbc*1000//0x100, 0xec*1000//0x100) # BLUE
+        curses.init_pair(0xf1, 0xf1, 0)
+        self.COLOR_BOT = curses.color_pair(0xf1)
+        curses.init_pair(0xf2, curses.COLOR_RED, 0)
+        self.COLOR_SYS = curses.color_pair(0xf2)
         self.pminrow = 0
 
     def check_extension(self):
         if self.pad.getyx()[0] > self.pad.getmaxyx()[0] - 500:
-            self.pad.resize(self.pad.getmaxyx[0] + 500, self.pad.getmaxyx[1])
+            self.pad.resize(self.pad.getmaxyx()[0] + 500, self.pad.getmaxyx()[1])
 
     def ensure_show(self, row):
         if self.pminrow > row:
             self.pminrow = row
         elif self.pminrow < row - (curses.LINES - 1):
             self.pminrow = row - (curses.LINES - 1)
-    
-    def refresh(self):
-        self.update_pad()
-        self.pad.refresh(self.pminrow, 0, 0, 0, curses.LINES-1, curses.COLS)
 
-    def put_message(self, message):
-        if message['role'] == 'system':
-            self.pad.addstr("@System:\n", curses.color_pair(3) | curses.A_BOLD)
-            content = message['content']
-            if len(content) > 100:
-                content = content[0:99] + '...'
-            self.pad.addstr(content, curses.color_pair(3))
-        elif message['role'] == 'user':     
-            self.pad.addstr("@User:\n", curses.color_pair(1) | curses.A_BOLD)
-            self.pad.addstr(message['content'], curses.color_pair(1))
-        elif message['role'] == 'assistant':
-            self.pad.addstr(f"@{self.log.config['role']}:\n", curses.color_pair(2) | curses.A_BOLD)
-            self.pad.addstr(message['content'], curses.color_pair(2))
-
-    def update_pad(self):
-        chat = self.log.get_chat()
-        assert chat[0]['role'] == 'system'
+    def refresh_log(self):
         self.pad.clear()
-        for message in chat:
+        curr = self.log.first
+        assert curr.chat['role'] == 'system'
+        while curr is not None:
             self.check_extension()
-            self.put_message(message)
-            self.pad.addch('\n')
-        if chat[-1]['role'] == 'user':
-            self.put_message({
-                'role': 'assistant',
-                'content': '...'
-            })
-            self.pad.addch('\n')
+            content = curr.chat['content']
+            if curr.chat['role'] == 'system':
+                attr = self.COLOR_SYS
+                name = 'System'
+                if len(content) > 127:
+                    content = content[:127]+'...'
+            elif curr.chat['role'] == 'user':
+                attr = self.COLOR_USR
+                name = 'User'
+            elif curr.chat['role'] == 'assistant':
+                attr = self.COLOR_BOT
+                name = self.log.config['role']
+            if curr is self.log.curr:
+                attr = curses.color_pair(0)
+
+            self.pad.attron(attr)
+            self.pad.attron(curses.A_BOLD)
+            self.pad.addstr(f"@{name}\n")
+            self.pad.attroff(curses.A_BOLD)
+            if content:
+                self.pad.addstr(content+'\n')
+            self.pad.attroff(attr)
+
+            curr = curr.next
+
+        self.text_yx = self.pad.getyx()
         self.ensure_show(self.pad.getyx()[0])
 
-    def key_handler(self, key):
-        if key == 410: # RESIZE
-            curses.update_lines_cols()
-            self.pad.resize(1000, curses.COLS)
-            self.update_pad()
-        elif key == 336: # SHIFT + DOWN
-            self.pminrow += 1
-            self.ensure_show(self.pad.getyx()[0])
-        elif key == 337: # SHIFT + UP
-            if self.pminrow > 0:
-                self.pminrow -= 1
-        else:
-            return False
-        return True
+    def refresh_pad(self):
+        self.pad.refresh(self.pminrow, 0, 0, 0, curses.LINES-1, curses.COLS)
 
-    def ask_user_input(self):
-        self.put_message({
-            'role': 'user',
-            'content': ''
-        })
-        textbox = Textbox()
-        cursor_yx = text_yx = self.pad.getyx()
-        while True:
-            self.pad.move(cursor_yx[0], cursor_yx[1])
-            self.refresh()
-            key = self.stdscr.getch()
-            if key == 393: # SHIFT + LEFT
-                break
-            if self.key_handler(key):
-                continue
-            textbox.type(key)
-            self.pad.move(text_yx[0], text_yx[1])
-            self.pad.addstr(textbox.s[:textbox.i])
-            cursor_yx = self.pad.getyx()
-            self.pad.addstr(textbox.s[textbox.i:]+'\n\n')
-        return textbox.s.strip('/n')
+    def refresh_tb(self, tb):
+        self.pad.move(self.text_yx[0], self.text_yx[1])
+        self.pad.addstr(tb.s[:tb.i])
+        cursor_yx = self.pad.getyx()
+        self.pad.addstr(tb.s[tb.i:]+'\n\n')
+        self.pad.move(cursor_yx[0], cursor_yx[1])
+        self.ensure_show(cursor_yx[0])
+
+    def scroll_down(self):
+        if self.pminrow < self.pad.getyx()[0]:
+            self.pminrow += 1
+    
+    def scroll_up(self):
+        if self.pminrow > 0:
+            self.pminrow -= 1
+
+    def page_down(self):
+        self.scroll_down()
+        for i in range(curses.LINES):
+            self.scroll_down()
+    
+    def page_up(self):
+        for i in range(curses.LINES):
+            self.scroll_up()
