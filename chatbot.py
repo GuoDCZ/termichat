@@ -33,8 +33,6 @@ class Control:
         self.alt: bool = False
         while True:
             key = stdscr.getch()
-            if key == 526:
-                self.put_key('!')
             if not self.put_key(key):
                 break
 
@@ -52,23 +50,29 @@ class Control:
         elif self.alt and key == 27: # doubel ESC
             return False
         elif key == 336: # SHIFT + DOWN
-            self.ui.scroll_down()
+            self.log.move_next()
+            self.ui.refresh_log()
         elif key == 337: # SHIFT + UP
-            self.ui.scroll_up()
+            self.log.move_prev()
+            self.ui.refresh_log()
         elif key == 393: # SHIFT + LEFT
-            self.ui.page_down()
+            self.log.move_left()
+            self.ui.refresh_log()
         elif key == 402: # SHIFT + RIGHT
-            self.ui.page_up()
+            self.log.move_right()
+            self.ui.refresh_log()
         # elif key == 410: # RESIZE
         #     curses.update_lines_cols()
         #     self.pad.resize(1000, curses.COLS)
-        #     self.update_pad()
-        elif key == 546: # CTRL + LEFT
-            self.log.move_prev()
-            self.ui.refresh_log()
-        elif key == 561: # CTRL + RIGHT
-            self.log.move_next()
-            self.ui.refresh_log()
+        #     self.update_pad()525545566560
+        elif key == 525: # ALT + SHIFT + DOWN
+            self.ui.scroll_up()
+        elif key == 545: # ALT + SHIFT + LEFT
+            self.ui.page_up()
+        elif key == 560: # ALT + SHIFT + RIGHT
+            self.ui.page_down()
+        elif key == 566: # ALT + SHIFT + UP
+            self.ui.scroll_down()
         else:
             self.tb.put_key(key)
             self.ui.refresh_tb(self.tb)

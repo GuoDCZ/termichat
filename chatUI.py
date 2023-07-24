@@ -47,18 +47,28 @@ class ChatUI:
             elif curr.chat['role'] == 'assistant':
                 attr = self.COLOR_BOT
                 name = self.log.config['role']
-            if curr is self.log.curr:
+
+            if curr is self.log.curr.get_next():
                 attr = curses.color_pair(0)
 
+            
             self.pad.attron(attr)
+
             self.pad.attron(curses.A_BOLD)
-            self.pad.addstr(f"@{name}\n")
+            self.pad.addstr(f"@{name}: ")
+            if curr is self.log.curr.get_next():
+                self.pad.addstr(f"[{curr.tokens if curr.tokens else '?'}/")
+                self.pad.addstr(f"{self.log.get_tokens(curr)},")
+                self.pad.addstr(f"${self.log.get_consumption()}]")
+            self.pad.addch('\n')
             self.pad.attroff(curses.A_BOLD)
+
+            self.pad.addstr(content)
             if content:
-                self.pad.addstr(content+'\n')
+                self.pad.addch('\n')
             self.pad.attroff(attr)
 
-            curr = curr.next
+            curr = curr.get_next()
 
         self.text_yx = self.pad.getyx()
         self.ensure_show(self.pad.getyx()[0])
