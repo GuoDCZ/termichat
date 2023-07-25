@@ -17,6 +17,9 @@ class ChatUI:
         self.COLOR_BOT = curses.color_pair(0xf1)
         curses.init_pair(0xf2, curses.COLOR_RED, 0)
         self.COLOR_SYS = curses.color_pair(0xf2)
+        curses.init_color(0xf3, 500, 500, 500) # GREY
+        curses.init_pair(0xf3, 0xf3, 0)
+        self.COLOR_INFO = curses.color_pair(0xf3)
         self.pminrow = 0
 
     def check_extension(self):
@@ -29,11 +32,22 @@ class ChatUI:
         elif self.pminrow < row - (curses.LINES - 1):
             self.pminrow = row - (curses.LINES - 1)
 
+    def get_bar_string(self, n, i):
+        s = ''
+        for j in range(n):
+            if j == i:
+                s += '<' + str(i+1) + '>'
+            else:
+                s += '-'
+            if j > i and len(str(i+1))>len(str(i)):
+                s += '-'
+        return s
+
     def refresh_log(self):
         self.pad.clear()
-        curr = self.log.first
+        curr = self.log.root.get_next()
         assert curr.chat['role'] == 'system'
-        while curr is not None:
+        while curr:
             self.check_extension()
             content = curr.chat['content']
             if curr.chat['role'] == 'system':
@@ -57,9 +71,12 @@ class ChatUI:
             self.pad.attron(curses.A_BOLD)
             self.pad.addstr(f"@{name}: ")
             if curr is self.log.curr.get_next():
-                self.pad.addstr(f"[{curr.tokens if curr.tokens else '?'}/")
-                self.pad.addstr(f"{self.log.get_tokens(curr)},")
-                self.pad.addstr(f"${self.log.get_consumption()}]")
+                self.pad.attron(self.COLOR_INFO)
+                self.pad.addstr(f"{curr.total_tokens - curr.tokens}+")
+                self.pad.addstr(f"{curr.tokens if curr.tokens else '?'} | ")
+                self.pad.addstr(f"${self.log.get_consumption()} | ")
+                self.pad.addstr(self.get_bar_string(len(curr.prev.nexts),curr.prev.n))
+                self.pad.attroff(self.COLOR_INFO)
             self.pad.addch('\n')
             self.pad.attroff(curses.A_BOLD)
 

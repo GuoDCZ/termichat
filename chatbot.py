@@ -40,11 +40,12 @@ class Control:
         if not self.alt and key == 27: # ALT
             self.alt = True
         elif self.alt and key == 10: # ALT + ENTER
-            self.log.add_prompt(self.tb.s)
-            self.tb.clear()
-            self.ui.refresh_log()
-            self.ui.refresh_pad()
-            self.log.add_response()
+            if self.log.curr.chat['role'] != 'user':
+                self.log.add_usr_msg(self.tb.s)
+                self.tb.clear()
+                self.ui.refresh_log()
+                self.ui.refresh_pad()
+            self.log.add_bot_msg()
             self.ui.refresh_log()
             self.alt = False
         elif self.alt and key == 27: # doubel ESC
@@ -66,13 +67,13 @@ class Control:
         #     self.pad.resize(1000, curses.COLS)
         #     self.update_pad()525545566560
         elif key == 525: # ALT + SHIFT + DOWN
-            self.ui.scroll_up()
+            self.ui.scroll_down()
         elif key == 545: # ALT + SHIFT + LEFT
             self.ui.page_up()
         elif key == 560: # ALT + SHIFT + RIGHT
             self.ui.page_down()
         elif key == 566: # ALT + SHIFT + UP
-            self.ui.scroll_down()
+            self.ui.scroll_up()
         else:
             self.tb.put_key(key)
             self.ui.refresh_tb(self.tb)
