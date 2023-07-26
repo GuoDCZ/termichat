@@ -39,8 +39,8 @@ class ChatUI:
                 s += '<' + str(i+1) + '>'
             else:
                 s += '-'
-            if j > i and len(str(i+1))>len(str(i)):
-                s += '-'
+        for j in range(len(str(i+1)), len(str(n+1))):
+            s += '-'
         return s
 
     def refresh_log(self):

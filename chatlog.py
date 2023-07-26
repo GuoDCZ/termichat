@@ -72,12 +72,14 @@ class ChatLog:
             self.curr = self.curr.get_next()
 
     def move_left(self):
-        if self.curr.n > 0:
-            self.curr.n -= 1
+        if self.curr.n is not None:
+            if self.curr.n > 0:
+                self.curr.n -= 1
 
     def move_right(self):
-        if self.curr.n < len(self.curr.prev.nexts) - 1:
-            self.curr.n += 1
+        if self.curr.n is not None:
+            if self.curr.n < len(self.curr.nexts) - 1:
+                self.curr.n += 1
 
 class ChatItem:
     def __init__(self):
