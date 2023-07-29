@@ -8,7 +8,7 @@ import threading
 
 from chatlog import ChatLog
 from chatUI import ChatUI
-from text import TextBox
+from TextPad import TextPad
 
 CONFIG_FILE = "config.json"
 ROLEPLAY_DIR = "roleplay/"
@@ -24,15 +24,18 @@ def print_config(config):
 class Control:
     def __init__(self, config):
         self.log: ChatLog = ChatLog(config)
-        self.tb: TextBox = TextBox()
 
     def run(self, stdscr: curses.window):
+        size = stdscr.getmaxyx()
+        self.textpad: TextPad = TextPad(size)
         self.ui: ChatUI = ChatUI(stdscr, self.log)
         self.ui.refresh_log()
         self.ui.refresh_pad()
         self.alt: bool = False
         while True:
-            key = stdscr.getch()
+            key = stdscr.get_wch()
+            if type(key) is str:
+                key = ord(key)
             if not self.put_key(key):
                 break
 
@@ -41,8 +44,8 @@ class Control:
             self.alt = True
         elif self.alt and key == 10: # ALT + ENTER
             if self.log.curr.chat['role'] != 'user':
-                self.log.add_usr_msg(self.tb.s)
-                self.tb.clear()
+                self.log.add_usr_msg(self.textpad.s)
+                self.textpad.clear()
                 self.ui.refresh_log()
                 self.ui.refresh_pad()
             self.log.add_bot_msg()
@@ -75,30 +78,10 @@ class Control:
         elif key == 566: # ALT + SHIFT + UP
             self.ui.scroll_up()
         else:
-            self.tb.put_key(key)
-            self.ui.refresh_tb(self.tb)
+            self.textpad.put_key(key)
         self.ui.refresh_pad()
+        self.textpad.refresh()
         return True
-
-def run_infile(self, infile):
-    f = open(infile)
-    line = f.readline()
-    while line:
-        for r in range(0,1):
-            self.set_initial_chat()
-            self.set_user_message(line)
-            response = self.set_bot_message()
-            print(response)
-            time.sleep(0.5)
-        print()
-        line = f.readline()
-    f.close()
-
-def run_single(self, request):
-    self.set_initial_chat()
-    self.set_user_message(request)
-    response = self.set_bot_message()
-    print(response)
 
 def init_config():
     oldConfig = {}

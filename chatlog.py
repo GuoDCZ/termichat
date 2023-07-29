@@ -49,11 +49,11 @@ class ChatLog:
         return round((self.input_tokens * 0.0015 + self.output_tokens * 0.002) / 1000, 3)
     
     def get_chat(self):
-        curr = self.root.get_next()
+        curr = self.curr
         chat = []
-        while curr:
-            chat.append(curr.chat)
-            curr = curr.get_next()
+        while curr != self.root:
+            chat = [curr.chat] + chat
+            curr = curr.prev
         return chat
     
     def move_first(self):

@@ -1,5 +1,4 @@
 import curses
-from text import TextBox
 from chatlog import ChatLog
 
 class ChatUI:
@@ -34,13 +33,14 @@ class ChatUI:
 
     def get_bar_string(self, n, i):
         s = ''
-        for j in range(n):
-            if j == i:
-                s += '<' + str(i+1) + '>'
-            else:
+        if n > 0:
+            for j in range(n):
+                if j == i:
+                    s += '<' + str(i+1) + '>'
+                else:
+                    s += '-'
+            for j in range(len(str(i+1)), len(str(n+1))):
                 s += '-'
-        for j in range(len(str(i+1)), len(str(n+1))):
-            s += '-'
         return s
 
     def refresh_log(self):
@@ -93,18 +93,10 @@ class ChatUI:
     def refresh_pad(self):
         self.pad.refresh(self.pminrow, 0, 0, 0, curses.LINES-1, curses.COLS)
 
-    def refresh_tb(self, tb):
-        self.pad.move(self.text_yx[0], self.text_yx[1])
-        self.pad.addstr(tb.s[:tb.i])
-        cursor_yx = self.pad.getyx()
-        self.pad.addstr(tb.s[tb.i:]+'\n\n')
-        self.pad.move(cursor_yx[0], cursor_yx[1])
-        self.ensure_show(cursor_yx[0])
-
     def scroll_down(self):
         if self.pminrow < self.pad.getyx()[0]:
             self.pminrow += 1
-    
+
     def scroll_up(self):
         if self.pminrow > 0:
             self.pminrow -= 1
