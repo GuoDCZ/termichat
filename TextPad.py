@@ -1,79 +1,35 @@
 import curses
-from TextEditor import TextEditor
-
-MAX_LINE = 8
-
-def get_rect_pad(nlines, ncols):
-    rectpad = curses.newpad(nlines+1, ncols)
-    for line in range(1, nlines-1):
-        rectpad.addch(line, 0, '│')
-        rectpad.addch(line, ncols-1, '│')
-    for col in range(1, ncols-1):
-        rectpad.addch(0, col, '─')
-        rectpad.addch(nlines-1, col, '─')
-    rectpad.addch(0, 0, '╭')
-    rectpad.addch(0, ncols-1, '╮')
-    rectpad.addch(nlines-1, 0, '╰')
-    rectpad.addch(nlines-1, ncols-1, '╯')
-    return rectpad
+from TextEditor import *
 
 class TextPad(TextEditor):
-    def __init__(self, ssize):
+    def __init__(self, ncols):
         TextEditor.__init__(self)
-        self.ssize = ssize
-        self.psize = (20, ssize[1]-4)
+        self.psize = (20, ncols-4)
         self.pad: curses.window = curses.newpad(*self.psize)
-        self.tmaxy = 0
-        self.fminy = 0
-        self.fnl = 1
+        self.ymax = 0
+        self.ycur = 0
+        self.saved = False
 
-    def _check_psize(self):
-        if self.psize[0] < self.tmaxy+10 or self.psize[0] > self.tmaxy+20:
-            self.pad.resize(self.tmaxy+20, self.psize[1])
+    def _check_size(self):
+        if self.psize[0] < self.ymax+10 or self.psize[0] > self.ymax+20:
+            self.pad.resize(self.ymax+20, self.psize[1])
             self.psize = self.pad.getmaxyx()
         
     def _update_pad(self):
         self.pad.clear()
         self.pad.addstr(self.s[:self.i])
-        cursor_yx = self.pad.getyx()
-        self.cury = cursor_yx[0]
+        yxcur = self.pad.getyx()
+        self.ycur = yxcur[0]
         self.pad.addstr(self.s[self.i:])
-        self.tmaxy = self.pad.getyx()[0]
-        self.pad.move(*cursor_yx)
-        self._check_psize()
-
-    def _update_fminy(self):
-        if self.tmaxy < MAX_LINE-1:
-            self.fminy = 0
-        elif self.cury < self.fminy:
-            self.fminy = self.cury
-        elif self.cury - (MAX_LINE-1) > self.fminy:
-            self.fminy = self.cury - (MAX_LINE-1)
-
-    def _refresh_text_pad(self):
-        smin = (self.ssize[0]-self.fnl-1, 2)
-        smax = (self.ssize[0]-2, self.ssize[1]-3)
-        self._update_fminy()
-        self.pad.refresh(self.fminy, 0, *smin, *smax)
-
-    def _refresh_rect_pad(self):
-        rsize = (self.fnl+2, self.ssize[1])
-        rectpad = get_rect_pad(*rsize)
-        smin = (self.ssize[0]-rsize[0], 0)
-        smax = (self.ssize[0]-1, self.ssize[1]-1)
-        rectpad.refresh(0, 0, *smin, *smax)
-
-    def refresh(self):
-        self.fnl = min(self.tmaxy+1, MAX_LINE)
-        self._refresh_rect_pad()
-        self._refresh_text_pad()
+        self.ymax = self.pad.getyx()[0]
+        self.pad.move(*yxcur)
+        self._check_size()
         
-    def resize(self, size):
-        self.ssize = size
-        nlines = self.psize[0] * self.psize[1] // size[1] + 1
+    def _resize(self, ncols):
+        nlines = self.psize[0] * self.psize[1] // ncols + 1
         while nlines % 10 != 0:
             nlines += 1
-        self.pad.resize(nlines, size[1])
+        self.pad.resize(nlines, ncols)
         self.psize = self.pad.getmaxyx()
 
     def set(self, s):
@@ -85,6 +41,19 @@ class TextPad(TextEditor):
         self.s = ''
         self.i = 0
         self._update_pad()
+
+    def save(self):
+        assert not self.saved
+        self.s_saved = self.s
+        self.i_saved = self.i
+        self.saved = True
+
+    def load(self):
+        assert self.saved
+        self.s = self.s_saved
+        self.i = self.i_saved
+        self._update_pad()
+        self.saved = False
 
     def put_key(self, key):
         if key == 127: # BACK_SPACE

@@ -2,8 +2,8 @@ import openai
 import curses
 
 from ChatConfig import *
-from LogPad import LogPad
-from TextPad import TextPad
+from TextUI import *
+from LogUI import *
 
 def initUI():
     curses.initscr()
@@ -26,10 +26,13 @@ class ChatBot:
 
     def run(self, stdscr: curses.window):
         ssize = stdscr.getmaxyx()
-        self.textpad: TextPad = TextPad(ssize)
-        self.logpad: LogPad = LogPad(ssize, self.config)
-        self.logpad.update_pad()
-        self.logpad.refresh(self.textpad.fnl)
+        self.text: TextUI = TextUI(ssize)
+        self.log: LogUI = LogUI(ssize)
+        self.log.load_config(self.config)
+        self.text.refresh()
+        self.log.update_yshow(self.text.yshow)
+        self.log._update_pad()
+        self.log.refresh()
         self.alt: bool = False
         while True:
             key = stdscr.get_wch()
@@ -50,18 +53,17 @@ class ChatBot:
         if not self.alt and key == 27: # ALT
             self.alt = True
         elif self.alt and key == 10: # ALT + ENTER
-            if self.logpad.curr.chat['role'] != 'user':
-                self.logpad.add_msg('user', self.textpad.s)
-                self.textpad.clear()
-                self.logpad.update_pad()
-                self.textpad.refresh()
-                self.logpad.refresh(self.textpad.fnl)
-            messages = self.logpad.get_chat()
+            if self.log.curr.chat['role'] != 'user':
+                self.log.add_usr_msg(self.text.s)
+                self.text.clear()
+                self.log.update_yshow(self.text.yshow)
+                self.log.refresh()
+                self.text.refresh()
+            messages = self.log.get_chat()
             cmpl = self.cmpl_request(messages)
-            content = self.logpad.cmpl_stream_show(cmpl)
-            self.logpad.add_msg('assistant', content)
-            self.logpad.update_pad()
-            self.logpad.refresh(self.textpad.fnl)
+            content = self.log.stream_show_cmpl(cmpl)
+            self.log.add_bot_msg(content)
+            self.log.update_yshow(self.text.yshow)
             self.alt = False
         elif self.alt and key == 27: # doubel ESC
             return False
@@ -69,13 +71,22 @@ class ChatBot:
         #     curses.update_lines_cols()
         #     self.pad.resize(1000, curses.COLS)
         #     self.update_pad()
-        elif self.logpad.put_key(key):
-            self.logpad.refresh()
-            pass
+        elif self.log.put_key(key):
+            if not self.text.saved:
+                self.text.save()
+            item = self.log.curr.get_next()
+            if item:
+                if item.chat['role'] == 'user':
+                    self.text.set(item.chat['content'])
+                else:
+                    self.text.set("Press Alt + Enter to regenerate")
+            else:
+                self.text.load()
         else:
-            self.textpad.put_key(key)
-            self.textpad.refresh()
-            self.logpad.refresh(self.textpad.fnl)
+            self.text.put_key(key)
+            self.log.update_yshow(self.text.yshow)
+        self.log.refresh()
+        self.text.refresh()
         return True
 
 def main():
