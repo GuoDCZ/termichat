@@ -8,13 +8,14 @@ from LogUI import *
 def initUI():
     curses.initscr()
     curses.start_color()
-    curses.init_color(0xf0, 0xf3*1000//0x100, 0x94*1000//0x100, 0x25*1000//0x100)
+    curses.init_color(0xf0, 0xf3*1000//0x100//2+500, 0x94*1000//0x100//2+500, 0x25*1000//0x100//2+500)
     curses.init_pair(0xf0, 0xf0, 0)
     # self.COLOR_USR = curses.color_pair(0xf0)
-    curses.init_color(0xf1, 0x2d*1000//0x100, 0xbc*1000//0x100, 0xec*1000//0x100) # BLUE
+    curses.init_color(0xf1, 0x2d*1000//0x100//2+500, 0xbc*1000//0x100//2+500, 0xec*1000//0x100//2+500) # BLUE
     curses.init_pair(0xf1, 0xf1, 0)
     # self.COLOR_BOT = curses.color_pair(0xf1)
-    curses.init_pair(0xf2, curses.COLOR_RED, 0)
+    curses.init_color(0xf2, 0x25*1000//0x100//2+500, 0xf3*1000//0x100//2+500, 0x94*1000//0x100//2+500)
+    curses.init_pair(0xf2, 0xf2, 0)
     # self.COLOR_SYS = curses.color_pair(0xf2)
     curses.init_color(0xf3, 500, 500, 500) # GREY
     curses.init_pair(0xf3, 0xf3, 0)
@@ -26,6 +27,7 @@ class ChatBot:
 
     def run(self, stdscr: curses.window):
         ssize = stdscr.getmaxyx()
+        self.stdscr = stdscr
         self.text: TextUI = TextUI(ssize)
         self.log: LogUI = LogUI(ssize)
         self.log.load_config(self.config)
@@ -41,7 +43,8 @@ class ChatBot:
 
     def cmpl_request(self, messages):
         return openai.ChatCompletion.create(
-            model = "gpt-3.5-turbo", 
+            #model = "gpt-3.5-turbo", 
+            model = "gpt-3.5-turbo-0301",
             messages = messages, 
             temperature = self.config['temperature'],
             presence_penalty = self.config['presence_penalty'], 
@@ -53,30 +56,36 @@ class ChatBot:
         if not self.alt and key == 27: # ALT
             self.alt = True
         elif self.alt and key == 10: # ALT + ENTER
-            if self.log.curr.chat['role'] != 'user':
-                self.log.add_usr_msg(self.text.s)
+            if not 'role' in self.log.curr.chat:
+                self.log._add_msg('system', self.text.s)
                 self.text.clear()
-                self.log.update_yshow(self.text.yshow)
-                self.log.refresh()
-                self.text.refresh()
-            messages = self.log.get_chat()
-            cmpl = self.cmpl_request(messages)
-            content = self.log.stream_show_cmpl(cmpl)
-            self.log.add_bot_msg(content)
+            else:
+                if self.log.curr.chat['role'] != 'user':
+                    self.log.add_usr_msg(self.text.s)
+                    self.text.clear()
+                    self.log.update_yshow(self.text.yshow)
+                    self.log.refresh()
+                    self.text.refresh()
+                messages = self.log.get_chat()
+                cmpl = self.cmpl_request(messages)
+                content = self.log.stream_show_cmpl(cmpl)
+                self.log.add_bot_msg(content)
             self.log.update_yshow(self.text.yshow)
             self.alt = False
         elif self.alt and key == 27: # doubel ESC
-            return False
-        # elif key == 410: # RESIZE
-        #     curses.update_lines_cols()
-        #     self.pad.resize(1000, curses.COLS)
-        #     self.update_pad()
+            pass
+            # return False
+        elif key == 410: # RESIZE
+            ssize = self.stdscr.getmaxyx()
+            self.text.resize(ssize)
+            self.log.update_yshow(self.text.yshow)
+            self.log.resize(ssize)
         elif self.log.put_key(key):
             if not self.text.saved:
                 self.text.save()
             item = self.log.curr.get_next()
             if item:
-                if item.chat['role'] == 'user':
+                if item.chat['role'] != 'assistant':
                     self.text.set(item.chat['content'])
                 else:
                     self.text.set("Press Alt + Enter to regenerate")

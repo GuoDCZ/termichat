@@ -1,6 +1,6 @@
 {
     "roleDir": "roleplay/",
-    "role": "Neko",
+    "role": "Bot",
     "memorable": "n",
     "temperature": 1.0,
     "presence_penalty": 0.0,

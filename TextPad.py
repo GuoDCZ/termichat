@@ -4,14 +4,14 @@ from TextEditor import *
 class TextPad(TextEditor):
     def __init__(self, ncols):
         TextEditor.__init__(self)
-        self.psize = (20, ncols-4)
+        self.psize = (200, ncols-4)
         self.pad: curses.window = curses.newpad(*self.psize)
         self.ymax = 0
         self.ycur = 0
         self.saved = False
 
     def _check_size(self):
-        if self.psize[0] < self.ymax+10 or self.psize[0] > self.ymax+20:
+        if self.psize[0] < self.ymax+10 :#or self.psize[0] > self.ymax+20:
             self.pad.resize(self.ymax+20, self.psize[1])
             self.psize = self.pad.getmaxyx()
         

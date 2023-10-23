@@ -20,14 +20,14 @@ class ChatLog:
         return chat
     
     def move_first(self):
-        self.curr = self.root.get_next()
+        self.curr = self.root
 
     def move_last(self):
         while self.curr.get_next():
             self.curr = self.curr.get_next()
 
     def move_prev(self):
-        if self.curr.prev is not self.root:
+        if self.curr is not self.root:
             self.curr = self.curr.prev
 
     def move_next(self):

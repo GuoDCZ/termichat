@@ -27,16 +27,24 @@ class LogUI(LogPad):
                 self.refresh()
         return content
 
+    def resize(self, ssize):
+        self.ssize = ssize
+        self._resize(ssize[1])
+        self._update_pad()
+        self._update_pminrow()
+
     def refresh(self):
         pmin = (self.pminrow, 0)
         smin = (0, 0)
         smax = (self.yshow, self.ssize[1]-1)
-        self.pad.refresh(*pmin, *smin, *smax)
-        # print(pmin)
+        try:
+            self.pad.refresh(*pmin, *smin, *smax)
+        except:
+            pass
 
     def _update_pminrow(self):
         y = self.yl if self.godown else self.yu
-        assert y > 0
+        # assert y > 0
         if y < self.pminrow:
             self.pminrow = y
         elif y - self.yshow > self.pminrow:

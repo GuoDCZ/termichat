@@ -34,7 +34,10 @@ class TextUI(TextPad):
         pmin = (self.pminrow, 0)
         smin = (self.ssize[0]-self.yshow-2, 2)
         smax = (self.ssize[0]-2, self.ssize[1]-3)
-        self.pad.refresh(*pmin, *smin, *smax)
+        try:
+            self.pad.refresh(*pmin, *smin, *smax)
+        except:
+            pass
 
     def _refresh_rect_pad(self):
         rsize = (self.yshow+3, self.ssize[1])
@@ -42,11 +45,17 @@ class TextUI(TextPad):
         pmin = (0, 0)
         smin = (self.ssize[0]-self.yshow-3, 0)
         smax = (self.ssize[0]-1, self.ssize[1]-1)
-        rectpad.refresh(*pmin, *smin, *smax)
+        try:
+            rectpad.refresh(*pmin, *smin, *smax)
+        except:
+            pass
 
     def resize(self, ssize):
         self.ssize = ssize
         self._resize(ssize[1])
+        self._update_pad()
+        self._refresh_text_pad()
+        self._refresh_rect_pad()
 
     def refresh(self):
         self.yshow = min(self.ymax, MAX_LINE-1)

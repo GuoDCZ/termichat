@@ -1,10 +1,10 @@
 import curses
-import os
+import json
 from ChatLog import ChatLog
 
 def get_bar_string(n, i):
     s = ''
-    if n > 0:
+    if n > 1:
         for j in range(n):
             if j == i:
                 s += '<' + str(i+1) + '>'
@@ -26,9 +26,16 @@ class LogPad(ChatLog):
     def load_config(self, config):
         self.config = config
         self._init_style()
-        filepath = os.path.join(config['roleDir'], config['role'] + '.txt')
-        sys_content = open(filepath, 'r', encoding='utf-8').read()
-        self.add_item({'role':'system','content':sys_content})
+        # filepath = os.path.join(config['roleDir'], config['role'] + '.txt')
+        # sys_content = open(filepath, 'r', encoding='utf-8').read()
+        # self.add_item({'role':'system','content':sys_content})
+        filepath = "prompts-zh.json"
+        prompts = json.load(open(filepath))
+        for p in prompts:
+            self.add_item({'role':'system','content':p['content']})
+            self.move_prev()
+        self.add_item({'role':'system','content':''})
+
 
     def _init_style(self):
         self.name = {
@@ -46,6 +53,13 @@ class LogPad(ChatLog):
         if self.psize[0] < self.ymax+500 or self.psize[0] > self.ymax+1000:
             self.pad.resize(self.ymax+500, self.psize[1])
             self.psize = self.pad.getmaxyx()
+
+    def _resize(self, ncols):
+        nlines = self.psize[0] * self.psize[1] // ncols + 1
+        while nlines % 500 != 0:
+            nlines += 1
+        self.pad.resize(nlines, ncols)
+        self.psize = self.pad.getmaxyx()
 
     def _print_name_hl(self, chat, pair = (1,1)):
         self.yu = self.pad.getyx()[0]
