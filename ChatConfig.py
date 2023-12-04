@@ -37,6 +37,7 @@ def init_config():
     roleListStr = " ".join(roleFile[:-4] for roleFile in roleFileList)
     newConfig["role"] = config_key("role", f"Role ({roleListStr})", roleFileList[0][:-4])
 
+    newConfig["model"] = float(config_key("model", "Model", "gpt-3-turbo"))
     newConfig["memorable"] = config_key("memorable", "Memorable (y/n)", "n")
     newConfig["temperature"] = float(config_key("temperature", "Temperature", 1))
     newConfig["presence_penalty"] = float(config_key("presence_penalty", "Presence Penalty", 0))

@@ -43,8 +43,13 @@ class ChatBot:
 
     def cmpl_request(self, messages):
         return openai.ChatCompletion.create(
-            #model = "gpt-3.5-turbo", 
-            model = "gpt-3.5-turbo-0301",
+            # model = "gpt-3.5-turbo", 
+            # model = "gpt-3.5-turbo-0301",
+            model = self.config['model'],
+            # model = "gpt-4-0613",
+            # model = "gpt-4-32k",
+            # model = "gpt-4-32k-0613",
+            # model = "gpt-4-0314",
             messages = messages, 
             temperature = self.config['temperature'],
             presence_penalty = self.config['presence_penalty'], 
