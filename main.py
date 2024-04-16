@@ -43,13 +43,13 @@ class ChatBot:
 
     def cmpl_request(self, messages):
         return openai.ChatCompletion.create(
-            # model = "gpt-3.5-turbo", 
+            #model = "gpt-3.5-turbo", 
             # model = "gpt-3.5-turbo-0301",
-            model = self.config['model'],
-            # model = "gpt-4-0613",
+            # model = self.config['model'],
+             model = "gpt-4-1106-preview",
             # model = "gpt-4-32k",
             # model = "gpt-4-32k-0613",
-            # model = "gpt-4-0314",
+            # model = "gpt-4-1106-preview",
             messages = messages, 
             temperature = self.config['temperature'],
             presence_penalty = self.config['presence_penalty'], 
@@ -77,7 +77,7 @@ class ChatBot:
                 self.log.add_bot_msg(content)
             self.log.update_yshow(self.text.yshow)
             self.alt = False
-        elif self.alt and key == 27: # doubel ESC
+        elif self.alt and key == 27: # double ESC
             pass
             # return False
         elif key == 410: # RESIZE
