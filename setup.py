@@ -1,10 +1,9 @@
 from distutils.core import setup
-from setuptools import find_packages
 
 setup(
     name="termichat",
-    packages=["termichat"],
-    version="0.0",
+    packages=["termichat", "termichat.lib"],
+    version="0.0.5",
     license="MIT",
     description="Use ChatGPT in terminal",
     author="GuoDCZ",
@@ -14,7 +13,9 @@ setup(
     keywords=[
         "chat", "chatbot", "gpt", "gpt-3", "openai", "terminal", "cli"
     ],
-    install_requires=find_packages(),
+    install_requires=[
+        "openai==0.27.0",
+    ],
     entry_points={
         "console_scripts": [
             "termichat=termichat.main:main"

@@ -1,7 +1,0 @@
-In A museum, all exhibits are paintings. Using quantifiers (All, None, or Some), describe the quantity of artifacts in the museum in one sentence. 
-In a store with 600 t-shirts, there are 400 green t-shirts. Using quantifiers (All, None, or Some), describe the quantity of black t-shirts in the store in one sentence. 
-In A toy store with 800 toys, there are 200 puzzles. Using quantifiers (All, None, or Some), describe the quantity of puzzles in the toy store in one sentence. 
-In A car dealership, some of the cars are trucks. Using quantifiers (All, None, or Some), describe the quantity of SUVs in the car dealership in one sentence. 
-In A sports stadium with 600 sports events, there are 0 soccer matches.... Using quantifiers (All, None, or Some), describe the quantity of basketball matches in the sports stadium in one sentence. 
-In A sports stadium with 700 sports events, there are 0 soccer matches.... Using quantifiers (All, None, or Some), describe the quantity of soccer matches... in the sports stadium in one sentence. 
-In A music store, none of the instruments are drums. Using quantifiers (All, None, or Some), describe the quantity of guitars in the music store in one sentence. 

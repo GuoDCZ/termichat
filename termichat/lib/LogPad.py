@@ -2,6 +2,7 @@ import curses
 import json
 import os
 from .ChatLog import ChatLog
+from .Prompts import Prompts
 
 def get_bar_string(n, i):
     s = ''
@@ -30,10 +31,11 @@ class LogPad(ChatLog):
         # filepath = os.path.join(config['roleDir'], config['role'] + '.txt')
         # sys_content = open(filepath, 'r', encoding='utf-8').read()
         # self.add_item({'role':'system','content':sys_content})
-        filepath = "prompts-zh.json"
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        filepath = os.path.join(current_dir, filepath)
-        prompts = json.load(open(filepath))
+        # filepath = "prompts-zh.json"
+        # current_dir = os.path.dirname(os.path.abspath(__file__))
+        # filepath = os.path.join(current_dir, filepath)
+        # prompts = json.load(open(filepath))
+        prompts = Prompts().json_repr()
         for p in prompts:
             self.add_item({'role':'system','content':p['content']})
             self.move_prev()
