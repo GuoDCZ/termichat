@@ -1,0 +1,3 @@
+[console_scripts]
+termichat = termichat.main:main
+

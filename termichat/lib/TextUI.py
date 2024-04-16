@@ -1,5 +1,5 @@
 import curses
-from TextPad import *
+from .TextPad import *
 
 MAX_LINE = 8
 

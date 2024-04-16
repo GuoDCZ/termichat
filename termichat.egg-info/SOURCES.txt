@@ -1,0 +1,12 @@
+LICENSE.txt
+README.md
+setup.cfg
+setup.py
+termichat/__init__.py
+termichat/main.py
+termichat.egg-info/PKG-INFO
+termichat.egg-info/SOURCES.txt
+termichat.egg-info/dependency_links.txt
+termichat.egg-info/entry_points.txt
+termichat.egg-info/requires.txt
+termichat.egg-info/top_level.txt

@@ -1,8 +1,9 @@
 import os
 import json
 
-CONFIG_FILE = "config.json"
-ROLEPLAY_DIR = "roleplay/"
+CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
+CONFIG_FILE = CURRENT_DIR + "/config.json"
+ROLEPLAY_DIR = CURRENT_DIR + "/roleplay"
 
 def print_config(config):
     print(f"- Role: {config['role']}")
@@ -31,7 +32,7 @@ def init_config():
 
     newConfig["roleDir"] = config_key("roleDir", "Roleplay Content Directory", ROLEPLAY_DIR)
 
-    roleFileList = os.listdir(ROLEPLAY_DIR)
+    roleFileList = os.listdir(os.path.join(CURRENT_DIR, newConfig["roleDir"]))
     if roleFileList is None:
         roleFileList[0] = None
     roleListStr = " ".join(roleFile[:-4] for roleFile in roleFileList)

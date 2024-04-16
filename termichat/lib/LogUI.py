@@ -1,5 +1,5 @@
 import curses
-from LogPad import *
+from .LogPad import *
 
 class LogUI(LogPad):
     def __init__(self, ssize):

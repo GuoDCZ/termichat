@@ -1,5 +1,5 @@
 import curses
-from TextEditor import *
+from .TextEditor import *
 
 class TextPad(TextEditor):
     def __init__(self, ncols):
