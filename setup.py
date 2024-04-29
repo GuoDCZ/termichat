@@ -2,8 +2,8 @@ from distutils.core import setup
 
 setup(
     name="termichat",
-    packages=["termichat", "termichat.lib"],
-    version="0.0.5",
+    packages=["termichat"],
+    version="0.1.0",
     license="MIT",
     description="Use ChatGPT in terminal",
     author="GuoDCZ",
@@ -11,14 +11,14 @@ setup(
     url="https://github.com/GuoDCZ/termichat",
     download_url="", # FIXME
     keywords=[
-        "chat", "chatbot", "gpt", "gpt-3", "openai", "terminal", "cli"
+        "chat", "chatbot", "gpt", "gpt-3", "gpt-4", "openai", "terminal", "cli"
     ],
     install_requires=[
         "openai==0.27.0",
     ],
     entry_points={
         "console_scripts": [
-            "termichat=termichat.main:main"
+            "termichat=termichat.__main__:main",
         ]
     },
     classifiers=[
