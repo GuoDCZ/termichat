@@ -1,0 +1,36 @@
+.hidden {
+    display: none;
+}
+
+MyTextArea {
+    width: 1fr;
+    height: auto;
+    border: none;
+    padding: 0 1 1 1;
+}
+
+Dialog {
+    layout: vertical;
+    background: $boost;
+    width: 1fr;
+    height: 1fr;
+}
+
+Markdown {
+    height: auto;
+    margin: 0 0;
+    padding: 0 1;
+}
+
+Message {
+    border: round $background;
+    width: 1fr;
+
+    &:focus-within {
+        border: round $secondary;
+    }
+
+    &:focus {
+        border: round $accent;
+    }
+}
