@@ -22,7 +22,7 @@ Markdown {
     padding: 0 1;
 }
 
-Message {
+Block {
     border: round $background;
     width: 1fr;
 

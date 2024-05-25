@@ -16,6 +16,8 @@ from tree import Tree, Node
 def gen_tree():
     tree = Tree()
     node = tree.root
+    node.add("System message")
+    node = node.child
     node.add("User message 1")
     node = node.child
     node.add("Bot response 1")
@@ -23,6 +25,11 @@ def gen_tree():
     node.add("User message 2")
     node = node.child
     node.add("Bot response 2")
+    node = node.parent
+    node.add("User message 3")
+    node = node.child
+    node.add("Bot response 3")
+    node.add("Bot response 4")
     return tree
 
 class DialogApp(App):
@@ -38,7 +45,9 @@ class DialogApp(App):
 
     def compose(self) -> ComposeResult:
         """Compose the dialog app."""
-        dialog = Dialog(tree=gen_tree())
+        tree = gen_tree()
+        dialog = Dialog(tree=tree)
+        tree.root.switch(0)
         yield dialog
 
     # def render(self) -> None:
