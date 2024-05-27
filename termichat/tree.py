@@ -13,6 +13,7 @@ from functools import cached_property
 from threading import Thread, Event
 import pickle
 import asyncio
+import json
 
 from gpt import api_request, stream_request
 
@@ -65,12 +66,15 @@ class Node:
         return self.parent.messages + [self.message]
 
     def switch(self, index: int) -> None:
+        if len(self.children) == 0:
+            self.index = None
+            return
         if index is None:
             return
         if index < 0:
-            index = 0
+            self.index = 0
         elif index >= len(self.children):
-            index = len(self.children) - 1
+            self.index = len(self.children) - 1
         else:
             self.index = index
 
@@ -87,37 +91,12 @@ class Node:
             raise ValueError("Only user nodes can make requests.")
         return stream_request(self.messages)
 
-    # def send(self) -> None:
-    #     """Send the messages to the bot."""
-    #     return api_request(self.messages) # FIXME: handle exceptions
-
-    def stream_update(self, response: Any, callback: Optional[callable] = None) -> None:
-        """Stream the response to the current node."""
-        self._parent_content = ""
-        for chunk in response:
-            chuck_msg = chunk['choices'][0]['delta']
-            if 'content' in chuck_msg:
-                self._parent_content += chuck_msg['content']
-        callback() if callback else None
-
     def remove_child(self) -> None:
         """Remove the current child node."""
         if self.child is not None:
-            index = self.index
-            self.child._remove()
             self.children.remove(self.child)
-            self.switch(None)
-            if len(self.children) == 0:
-                index = None
-            elif self.index == len(self.children):
-                index -= 1
-            self.switch(index)
+            self.switch(self.index)
 
-    def _remove(self) -> None:
-        """Remove the current node and all its children."""
-        self.on_destroy()
-        for child in self.children:
-            child._remove()
 
 
 @dataclass
@@ -137,6 +116,23 @@ class Tree:
         try:
             with open(f"{path}.pkl", "rb") as f:
                 root = pickle.load(f)
+        except FileNotFoundError:
+            root = Node()
+        tree = cls()
+        tree.root = root
+        return tree
+
+
+    @classmethod
+    def load_from_json(cls, path: str = "prompts-zh") -> "Tree":
+        """Load the tree from a JSON file."""
+        try:
+            with open(f"{path}.json", "r") as f:
+                root = Node()
+                for prompt in json.load(f):
+                    root.add(
+                        f"{prompt['name']}|{prompt['content']}"
+                    )
         except FileNotFoundError:
             root = Node()
         tree = cls()
