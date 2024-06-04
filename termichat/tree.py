@@ -15,7 +15,7 @@ import pickle
 import asyncio
 import json
 
-from gpt import api_request, stream_request
+from gpt import stream_request
 
 
 @dataclass
@@ -135,6 +135,7 @@ class Tree:
                     )
         except FileNotFoundError:
             root = Node()
+            root.add("")
         tree = cls()
         tree.root = root
         return tree
